@@ -1,0 +1,13 @@
+spring:
+ application:
+       name: seo-validator
+
+server:
+  port: 8080
+
+seo:
+  fetch:
+    timeout: 20000
+    user-agent: Mozilla/5.0
+  thread-pool:
+    size: 10
