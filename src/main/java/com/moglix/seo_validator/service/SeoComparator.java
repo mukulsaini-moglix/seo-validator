@@ -1,9 +1,7 @@
 package com.moglix.seo_validator.service;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.util.Objects;
 
-import org.jsoup.nodes.Element;
 import org.springframework.stereotype.Service;
 
 import com.moglix.seo_validator.dto.ComparisonResult;
@@ -40,60 +38,92 @@ public class SeoComparator {
                 uatRes.getDocument()
         );
 
-        // 🔥 Extract actual visible H1 from page
-        Element prodH1 = prodRes.getDocument().selectFirst("main h1, h1");
-        Element uatH1  = uatRes.getDocument().selectFirst("main h1, h1");
+        boolean titleMatch = normalize(prod.getSeoTitle())
+                .equals(normalize(uat.getSeoTitle()));
 
-        String prodPageTitle = prodH1 != null ? prodH1.text().trim() : "";
-        String uatPageTitle  = uatH1 != null ? uatH1.text().trim() : "";
+        boolean metaMatch = normalize(prod.getMetaDescription())
+                .equals(normalize(uat.getMetaDescription()));
 
-        // DEBUG ONLY FOR SPECIFIC SLUG
-        if ("common-types-of-safety-audits-what-are-they"
-                .equals(pair.getSlug())) {
+        boolean canonicalMatch = Objects.equals(
+                prod.getCanonicalPathOnly(),
+                uat.getCanonicalPathOnly()
+        );
 
-            System.out.println("===== DEBUG FOR SLUG =====");
+        boolean robotsMatch = normalize(prod.getRobotsTag())
+                .equals(normalize(uat.getRobotsTag()));
 
-            System.out.println("PROD FINAL URL: " + prod.getFinalUrl());
-            System.out.println("UAT FINAL URL:  " + uat.getFinalUrl());
+        boolean h1Match = normalize(prod.getH1Title())
+                .equals(normalize(uat.getH1Title()));
 
-            // Save complete HTML to files
-            Files.writeString(
-                    Path.of("prod-common-types.html"),
-                    prodRes.getDocument().outerHtml()
-            );
+        boolean schemaMatch = normalize(prod.getArticleSchemaJson())
+                .equals(normalize(uat.getArticleSchemaJson()));
 
-            Files.writeString(
-                    Path.of("uat-common-types.html"),
-                    uatRes.getDocument().outerHtml()
-            );
-
-            System.out.println("HTML files saved:");
-            System.out.println("prod-common-types.html");
-            System.out.println("uat-common-types.html");
-
-            System.out.println("===== END DEBUG =====");
-        }
+        boolean contentSimilarityAbove95Percent =
+                calculateSimilarity(
+                        prod.getCleanedBlogContentOnly(),
+                        uat.getCleanedBlogContentOnly()
+                ) >= 95.0;
 
         return new ComparisonResult(
                 pair.getSlug(),
-                prod.getStatusCode() == uat.getStatusCode(),
-                prod.getFinalUrl().equals(uat.getFinalUrl()),
-                prodPageTitle.equals(uatPageTitle),   // ✅ Changed Here
-                prod.getMetaDescription().equals(uat.getMetaDescription()),
-                prod.getCanonical().equals(uat.getCanonical()),
-                prod.isBreadcrumbExists() == uat.isBreadcrumbExists(),
-                prod.isDateExists() == uat.isDateExists(),
-                prod.getPublishedDate().equals(uat.getPublishedDate()),
-                prod.getH1Count() == uat.getH1Count()
-                        && prod.getH2Count() == uat.getH2Count()
-                        && prod.getH3Count() == uat.getH3Count(),
-                prod.getImageFileNames().size() == uat.getImageFileNames().size(),
-                prod.getImageFileNames().equals(uat.getImageFileNames()),
-                prod.getImageAltTexts().equals(uat.getImageAltTexts()),
-                prod.getParagraphCount() == uat.getParagraphCount(),
-                prod.getListItemCount() == uat.getListItemCount(),
-                prod.getContentText().equals(uat.getContentText()),
-                prod.isHasSchema() == uat.isHasSchema()
+                titleMatch,
+                metaMatch,
+                canonicalMatch,
+                robotsMatch,
+                h1Match,
+                schemaMatch,
+                contentSimilarityAbove95Percent
         );
+    }
+
+    // ===============================
+    // Helpers
+    // ===============================
+
+    private String normalize(String value) {
+        if (value == null) return "";
+        return value
+                .replaceAll("\\s+", " ")
+                .trim()
+                .toLowerCase();
+    }
+
+    private double calculateSimilarity(String s1, String s2) {
+
+        s1 = normalize(s1);
+        s2 = normalize(s2);
+
+        if (s1.isEmpty() && s2.isEmpty()) return 100.0;
+
+        int maxLength = Math.max(s1.length(), s2.length());
+        int distance = levenshteinDistance(s1, s2);
+
+        return ((double) (maxLength - distance) / maxLength) * 100;
+    }
+
+    private int levenshteinDistance(String s1, String s2) {
+
+        int[][] dp = new int[s1.length() + 1][s2.length() + 1];
+
+        for (int i = 0; i <= s1.length(); i++)
+            dp[i][0] = i;
+
+        for (int j = 0; j <= s2.length(); j++)
+            dp[0][j] = j;
+
+        for (int i = 1; i <= s1.length(); i++) {
+            for (int j = 1; j <= s2.length(); j++) {
+
+                int cost = s1.charAt(i - 1) == s2.charAt(j - 1) ? 0 : 1;
+
+                dp[i][j] = Math.min(
+                        Math.min(dp[i - 1][j] + 1,
+                                dp[i][j - 1] + 1),
+                        dp[i - 1][j - 1] + cost
+                );
+            }
+        }
+
+        return dp[s1.length()][s2.length()];
     }
 }

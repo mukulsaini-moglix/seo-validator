@@ -1,12 +1,9 @@
 package com.moglix.seo_validator.service;
 
-
-import java.util.ArrayList;
-import java.util.List;
+import java.net.URI;
 
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 import org.springframework.stereotype.Service;
 
 import com.moglix.seo_validator.dto.SeoData;
@@ -16,81 +13,85 @@ public class SeoExtractor {
 
     public SeoData extract(int statusCode, String finalUrl, Document doc) {
 
-        Element blog = doc.selectFirst("main");
+        // 1️⃣ SEO TITLE
+        String seoTitle = doc.title().trim();
 
-        if (blog == null) {
-            blog = doc.body();
+        // 2️⃣ H1
+        String h1Title = "";
+        Element h1 = doc.selectFirst("main h1");
+        if (h1 != null) {
+            h1Title = h1.text().trim();
         }
 
-        blog.select("script, style, nav, footer").remove();
+        // 3️⃣ META DESCRIPTION
+        String metaDescription =
+                doc.select("meta[name=description]")
+                        .attr("content")
+                        .trim();
 
-        String title = doc.title().trim();
-        String metaDescription = doc.select("meta[name=description]").attr("content").trim();
-        String canonical = doc.select("link[rel=canonical]").attr("abs:href").trim();
-        String robots = doc.select("meta[name=robots]").attr("content").trim();
+        // 4️⃣ CANONICAL PATH ONLY
+        String canonicalPathOnly = "";
+        String canonicalFull =
+                doc.select("link[rel=canonical]")
+                        .attr("abs:href")
+                        .trim();
 
-        boolean breadcrumbExists = !blog.select(".breadcrumb, nav[aria-label=breadcrumb]").isEmpty();
-
-        Element dateElement = blog.selectFirst("time, .date, .published-date");
-        boolean dateExists = dateElement != null;
-        String publishedDate = dateExists ? dateElement.text().trim().toLowerCase() : "";
-
-        int h1Count = blog.select("h1").size();
-        int h2Count = blog.select("h2").size();
-        int h3Count = blog.select("h3").size();
-
-        int paragraphCount = blog.select("p").size();
-        int ulCount = blog.select("ul").size();
-        int olCount = blog.select("ol").size();
-        int liCount = blog.select("li").size();
-
-        Elements images = blog.select("img");
-        List<String> imageFileNames = new ArrayList<>();
-        List<String> imageAltTexts = new ArrayList<>();
-
-        for (Element img : images) {
-            String src = img.attr("abs:src");
-            imageFileNames.add(getFileName(src));
-            imageAltTexts.add(img.attr("alt").toLowerCase().trim());
+        if (!canonicalFull.isEmpty()) {
+            try {
+                canonicalPathOnly = new URI(canonicalFull).getPath();
+            } catch (Exception ignored) {}
         }
 
-        int internalLinks = blog.select("a[href^=/]").size();
+        // 5️⃣ ROBOTS
+        String robotsTag =
+                doc.select("meta[name=robots]")
+                        .attr("content")
+                        .trim();
 
-        boolean hasSchema = !doc.select("script[type=application/ld+json]").isEmpty();
+        // 6️⃣ PUBLISHED DATE
+        String publishedDate = "";
+        Element timeTag = doc.selectFirst("time");
+        if (timeTag != null) {
+            publishedDate = timeTag.text().trim();
+        }
 
-        String contentText = blog.text()
-                .replaceAll("\\s+", " ")
-                .trim()
-                .toLowerCase();
+        // 7️⃣ ARTICLE SCHEMA
+        String articleSchemaJson = doc.select("script[type=application/ld+json]")
+                .stream()
+                .map(Element::html)
+                .filter(json -> json.contains("\"@type\":\"Article\""))
+                .findFirst()
+                .orElse("")
+                .trim();
 
+        // 8️⃣ FEATURE IMAGE
+        String featureImage =
+                doc.select("meta[property=og:image]")
+                        .attr("content")
+                        .trim();
+
+        // 9️⃣ CLEANED BLOG CONTENT
+        String cleanedBlogContentOnly = "";
+        Element blogContent = doc.selectFirst(".blog-content");
+        if (blogContent != null) {
+            blogContent.select("script, style, nav, footer").remove();
+            cleanedBlogContentOnly = blogContent.text()
+                    .replaceAll("\\s+", " ")
+                    .trim()
+                    .toLowerCase();
+        }
+
+        // RETURN ALL 9 PARAMETERS
         return new SeoData(
-                statusCode,
-                finalUrl,
-                title,
+                seoTitle,
+                h1Title,
                 metaDescription,
-                canonical,
-                robots,
-                breadcrumbExists,
-                dateExists,
+                canonicalPathOnly,
+                robotsTag,                // ✅ NOW INCLUDED
                 publishedDate,
-                h1Count,
-                h2Count,
-                h3Count,
-                paragraphCount,
-                ulCount,
-                olCount,
-                liCount,
-                imageFileNames,
-                imageAltTexts,
-                internalLinks,
-                hasSchema,
-                contentText
+                articleSchemaJson,
+                featureImage,
+                cleanedBlogContentOnly
         );
-    }
-
-    private String getFileName(String url) {
-        if (url == null || url.isEmpty()) return "";
-        int index = url.lastIndexOf("/");
-        return index != -1 ? url.substring(index + 1).toLowerCase() : url.toLowerCase();
     }
 }
