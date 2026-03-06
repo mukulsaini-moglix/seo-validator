@@ -22,7 +22,7 @@ public class SeoReportGenerator {
     public void generate(List<BlogComparisonResult> results) throws IOException {
 
         try (CSVWriter writer =
-                     new CSVWriter(new FileWriter("seo-comparison-report.csv"))) {
+                     new CSVWriter(new FileWriter("reports/seo-comparison-report.csv"))) {
 
             // ===============================
             // HEADER

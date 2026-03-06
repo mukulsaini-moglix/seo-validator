@@ -2,13 +2,23 @@ package com.moglix.seo_validator.controller;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -34,9 +44,12 @@ public class SeoValidationController {
     private final SeoComparator seoComparator;
     private final MatchReportGenerator matchReportGenerator;
     private final SeoReportGenerator seoReportGenerator;
+    
+    @Value("${seo.base-url}")
+    private String baseUrl;
 
     @GetMapping("/run")
-    public String run(
+    public Map<String, Object> run(
             @RequestParam(required = true) String prodSitemap,
             @RequestParam(required = true) String uatSitemap,
             @RequestParam(required = true) String type
@@ -109,7 +122,29 @@ public class SeoValidationController {
 
         seoReportGenerator.generate(seoResults);
 
-        return "SEO Validation Completed Successfully.";
+        Map<String, Object> response = new HashMap<>();
+
+        response.put("status", "success");
+        response.put("files", List.of(
+                baseUrl + "/downloads/seo-comparison-report.csv",
+                baseUrl + "/downloads/matched-urls.csv",
+                baseUrl + "/downloads/missing-in-uat.csv",
+                baseUrl + "/downloads/extra-in-uat.csv"
+        ));
+
+        return response;
+    }
+    
+    @GetMapping("/downloads/{fileName}")
+    public ResponseEntity<Resource> download(@PathVariable String fileName) throws Exception {
+
+        Path path = Paths.get("reports").resolve(fileName);
+        Resource resource = new UrlResource(path.toUri());
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=" + fileName)
+                .body(resource);
     }
     
     private void validateUrl(String url) {

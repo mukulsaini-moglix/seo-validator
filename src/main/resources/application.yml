@@ -1,13 +1,8 @@
 spring:
- application:
-       name: seo-validator
+  application:
+    name: seo-validator
+  profiles:
+    active: qa
 
 server:
   port: 8080
-
-seo:
-  fetch:
-    timeout: 20000
-    user-agent: Mozilla/5.0
-  thread-pool:
-    size: 10
