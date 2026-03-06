@@ -36,8 +36,11 @@ public class SeoValidationController {
     private final SeoReportGenerator seoReportGenerator;
 
     @GetMapping("/run")
-    public String run(@RequestParam(required = true) String prodSitemap,
-            @RequestParam(required = true) String uatSitemap) throws Exception {
+    public String run(
+            @RequestParam(required = true) String prodSitemap,
+            @RequestParam(required = true) String uatSitemap,
+            @RequestParam(required = true) String type
+    ) throws Exception {
 
 		validateUrl(prodSitemap);
 		validateUrl(uatSitemap);
@@ -47,8 +50,8 @@ public class SeoValidationController {
 		// ===============================
 		// STEP 1: Parse Sitemaps
 		// ===============================
-		List<String> prodUrls = sitemapParser.parse(prodSitemap);
-		List<String> uatUrls = sitemapParser.parse(uatSitemap);
+		List<String> prodUrls = sitemapParser.parse(prodSitemap, type);
+		List<String> uatUrls = sitemapParser.parse(uatSitemap, type);
 
 		// ===============================
         // STEP 2: Match URLs
