@@ -33,8 +33,14 @@ public class SeoExtractor {
 
         String robotsTag = doc.select("meta[name=robots]").attr("content");
 
-        String ogUrl = doc.select("meta[property=og:url]").attr("content");
+        String ogfullUrl = doc.select("meta[property=og:url]").attr("content");
 
+        String ogUrl = "";
+
+        try {
+            ogUrl = new URI(ogfullUrl).getPath();
+        } catch (Exception ignored) {}
+        
         // ===============================
         // META
         // ===============================

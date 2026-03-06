@@ -38,31 +38,26 @@ public class SeoReportGenerator {
                     "Status Code Match",
                     "Canonical Match",
                     "Robots Match",
-                    "OG URL Match",
-                    "Technical Severity",
+                    "OG URL Match",                   
 
                     // Meta
                     "Title Match",
                     "Meta Description Match",
                     "OG Title Match",
-                    "OG Description Match",
-                    "OG Image Match",
+                    "OG Description Match",                   
                     "Title Length (Prod)",
                     "Title Length (UAT)",
                     "Meta Length (Prod)",
-                    "Meta Length (UAT)",
-                    "Meta Severity",
+                    "Meta Length (UAT)",                  
 
                     // Structured
                     "Schema Exists (Prod)",
                     "Schema Exists (UAT)",
                     "Schema Headline Match",
-                    "Schema Description Match",
-                    "Schema Image Match",
+                    "Schema Description Match",                   
                     "Date Published Match",
                     "Date Modified Match",
-                    "Author Match",
-                    "Structured Severity",
+                    "Author Match",                  
 
                     // Headings
                     "H1 Match",
@@ -70,31 +65,26 @@ public class SeoReportGenerator {
                     "H2 Count (Prod)",
                     "H2 Count (UAT)",
                     "H3 Count (Prod)",
-                    "H3 Count (UAT)",
-                    "Heading Severity",
+                    "H3 Count (UAT)",                 
 
                     // Content
                     "Word Count (Prod)",
                     "Word Count (UAT)",
                     "Word Difference %",
                     "Similarity %",
-                    "Similarity >= 95",
-                    "Content Severity",
+                    "Similarity >= 95",                
 
-                    // Images
-                    "Featured Image Match",
+                    // Images                    
                     "Image Count (Prod)",
                     "Image Count (UAT)",
                     "Missing Alt (Prod)",
-                    "Missing Alt (UAT)",
-                    "Image Severity",
+                    "Missing Alt (UAT)",                  
 
                     // Links
                     "Internal Links (Prod)",
                     "Internal Links (UAT)",
                     "External Links (Prod)",
-                    "External Links (UAT)",
-                    "Link Severity"
+                    "External Links (UAT)"                  
             };
 
             writer.writeNext(header);
@@ -123,31 +113,26 @@ public class SeoReportGenerator {
                         bool(t.isStatusCodeMatch()),
                         bool(t.isCanonicalMatch()),
                         bool(t.isRobotsMatch()),
-                        bool(t.isOgUrlMatch()),
-                        t.getSeverity(),
+                        bool(t.isOgUrlMatch()),                        
 
                         // Meta
                         bool(m.isTitleMatch()),
                         bool(m.isMetaDescriptionMatch()),
                         bool(m.isOgTitleMatch()),
-                        bool(m.isOgDescriptionMatch()),
-                        bool(m.isOgImageMatch()),
+                        bool(m.isOgDescriptionMatch()),                      
                         String.valueOf(m.getProdTitleLength()),
                         String.valueOf(m.getUatTitleLength()),
                         String.valueOf(m.getProdDescriptionLength()),
-                        String.valueOf(m.getUatDescriptionLength()),
-                        m.getSeverity(),
+                        String.valueOf(m.getUatDescriptionLength()),                    
 
                         // Structured
                         bool(s.isSchemaExistsInProd()),
                         bool(s.isSchemaExistsInUat()),
                         bool(s.isHeadlineMatch()),
-                        bool(s.isDescriptionMatch()),
-                        bool(s.isImageMatch()),
+                        bool(s.isDescriptionMatch()),                        
                         bool(s.isDatePublishedMatch()),
                         bool(s.isDateModifiedMatch()),
-                        bool(s.isAuthorMatch()),
-                        s.getSeverity(),
+                        bool(s.isAuthorMatch()),                     
 
                         // Heading
                         bool(h.isH1TextMatch()),
@@ -155,31 +140,26 @@ public class SeoReportGenerator {
                         String.valueOf(h.getProdH2Count()),
                         String.valueOf(h.getUatH2Count()),
                         String.valueOf(h.getProdH3Count()),
-                        String.valueOf(h.getUatH3Count()),
-                        h.getSeverity(),
+                        String.valueOf(h.getUatH3Count()),                    
 
                         // Content
                         String.valueOf(c.getProdWordCount()),
                         String.valueOf(c.getUatWordCount()),
                         format(c.getWordDifferencePercent()),
                         format(c.getSimilarityPercent()),
-                        bool(c.isSimilarityAbove95()),
-                        c.getSeverity(),
+                        bool(c.isSimilarityAbove95()),                    
 
-                        // Images
-                        bool(i.isFeaturedImageMatch()),
+                        // Images                    
                         String.valueOf(i.getProdImageCount()),
                         String.valueOf(i.getUatImageCount()),
                         String.valueOf(i.getProdMissingAltCount()),
-                        String.valueOf(i.getUatMissingAltCount()),
-                        i.getSeverity(),
+                        String.valueOf(i.getUatMissingAltCount()),                    
 
                         // Links
                         String.valueOf(l.getProdInternalLinks()),
                         String.valueOf(l.getUatInternalLinks()),
                         String.valueOf(l.getProdExternalLinks()),
-                        String.valueOf(l.getUatExternalLinks()),
-                        l.getSeverity()
+                        String.valueOf(l.getUatExternalLinks())                      
                 });
             }
         }
