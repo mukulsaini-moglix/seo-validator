@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.moglix.seo_validator.dto.ComparisonResult;
+import com.moglix.seo_validator.dto.BlogComparisonResult;
 import com.moglix.seo_validator.dto.MatchResult;
 import com.moglix.seo_validator.dto.UrlPair;
 import com.moglix.seo_validator.service.MatchReportGenerator;
@@ -37,27 +37,45 @@ public class SeoValidationController {
         String prodSitemap = "https://business.moglix.com/sitemap_blogs.xml";
         String uatSitemap  = "https://uat.business.moglilabs.com/sitemap_blogs.xml";
 
+        // ===============================
+        // STEP 1: Parse Sitemaps
+        // ===============================
+
         List<String> prodUrls = sitemapParser.parse(prodSitemap);
         List<String> uatUrls  = sitemapParser.parse(uatSitemap);
 
+        // ===============================
+        // STEP 2: Match URLs
+        // ===============================
+
         MatchResult result = urlMatcher.match(prodUrls, uatUrls);
 
-        System.out.println("Matched URLs: " + result.getMatched().size());
-        System.out.println("Missing in UAT: " + result.getMissingInUat().size());
-        System.out.println("Extra in UAT: " + result.getExtraInUat().size());
+        log.info("Matched URLs: {}", result.getMatched().size());
+        log.info("Missing in UAT: {}", result.getMissingInUat().size());
+        log.info("Extra in UAT: {}", result.getExtraInUat().size());
 
+        // Generate match report
         matchReportGenerator.generate(result);
 
-        List<ComparisonResult> seoResults = new ArrayList<>();
+        // ===============================
+        // STEP 3: SEO Comparison
+        // ===============================
+
+        List<BlogComparisonResult> seoResults = new ArrayList<>();
 
         for (UrlPair pair : result.getMatched()) {
 
-            System.out.println("Comparing: " + pair.getSlug());
+            log.info("Comparing: {}", pair.getSlug());
 
-            ComparisonResult comparison = seoComparator.compare(pair);
+            BlogComparisonResult comparison =
+                    seoComparator.compare(pair);
 
             seoResults.add(comparison);
         }
+
+        // ===============================
+        // STEP 4: Generate SEO Report
+        // ===============================
 
         seoReportGenerator.generate(seoResults);
 
