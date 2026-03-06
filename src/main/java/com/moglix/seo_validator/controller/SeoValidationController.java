@@ -1,10 +1,15 @@
 package com.moglix.seo_validator.controller;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.moglix.seo_validator.dto.BlogComparisonResult;
@@ -20,7 +25,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @RestController
-@RequestMapping("/api/seo")
 @RequiredArgsConstructor
 @Slf4j
 public class SeoValidationController {
@@ -32,19 +36,21 @@ public class SeoValidationController {
     private final SeoReportGenerator seoReportGenerator;
 
     @GetMapping("/run")
-    public String run() throws Exception {
+    public String run(@RequestParam(required = true) String prodSitemap,
+            @RequestParam(required = true) String uatSitemap) throws Exception {
 
-        String prodSitemap = "https://business.moglix.com/sitemap_blogs.xml";
-        String uatSitemap  = "https://uat.business.moglilabs.com/sitemap_blogs.xml";
+		validateUrl(prodSitemap);
+		validateUrl(uatSitemap);
+		log.info("Prod sitemap: {}", prodSitemap);
+		log.info("UAT sitemap: {}", uatSitemap);
 
-        // ===============================
-        // STEP 1: Parse Sitemaps
-        // ===============================
+		// ===============================
+		// STEP 1: Parse Sitemaps
+		// ===============================
+		List<String> prodUrls = sitemapParser.parse(prodSitemap);
+		List<String> uatUrls = sitemapParser.parse(uatSitemap);
 
-        List<String> prodUrls = sitemapParser.parse(prodSitemap);
-        List<String> uatUrls  = sitemapParser.parse(uatSitemap);
-
-        // ===============================
+		// ===============================
         // STEP 2: Match URLs
         // ===============================
 
@@ -58,20 +64,41 @@ public class SeoValidationController {
         matchReportGenerator.generate(result);
 
         // ===============================
-        // STEP 3: SEO Comparison
+        // STEP 3: SEO Comparison (PARALLEL)
         // ===============================
 
         List<BlogComparisonResult> seoResults = new ArrayList<>();
 
+        // Thread pool for parallel execution
+        int threadCount = 10;
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+
+        List<Future<BlogComparisonResult>> futures = new ArrayList<>();
+
         for (UrlPair pair : result.getMatched()) {
 
-            log.info("Comparing: {}", pair.getSlug());
+            futures.add(
+                executor.submit(() -> {
 
-            BlogComparisonResult comparison =
-                    seoComparator.compare(pair);
+                    log.info("Thread {} comparing: {}",
+                            Thread.currentThread().getName(),
+                            pair.getSlug());
 
-            seoResults.add(comparison);
+                    return seoComparator.compare(pair);
+                })
+            );
         }
+
+        // Collect results
+        for (Future<BlogComparisonResult> future : futures) {
+            try {
+                seoResults.add(future.get());
+            } catch (Exception e) {
+                log.error("Error during SEO comparison", e);
+            }
+        }
+
+        executor.shutdown();
 
         // ===============================
         // STEP 4: Generate SEO Report
@@ -80,5 +107,21 @@ public class SeoValidationController {
         seoReportGenerator.generate(seoResults);
 
         return "SEO Validation Completed Successfully.";
+    }
+    
+    private void validateUrl(String url) {
+
+        try {
+            URI uri = new URI(url);
+
+            if (uri.getScheme() == null ||
+               !(uri.getScheme().equals("http") || uri.getScheme().equals("https"))) {
+
+                throw new IllegalArgumentException("Only HTTP/HTTPS URLs are allowed");
+            }
+
+        } catch (URISyntaxException e) {
+            throw new IllegalArgumentException("Invalid URL: " + url);
+        }
     }
 }
